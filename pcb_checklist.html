@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCB Design Verification Dashboard</title>
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --panel-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --accent-blue: #2563eb;
+            --accent-blue-light: #dbeafe;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        header p {
+            color: #93c5fd;
+            font-size: 0.95rem;
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar Navigation & Metrics */
+        .sidebar {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .nav-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-item:hover {
+            background-color: var(--bg-main);
+        }
+
+        .nav-item.active {
+            background-color: var(--accent-blue-light);
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        /* Progress Metrics */
+        .progress-box {
+            background: var(--bg-main);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .progress-bar-container {
+            background: #e2e8f0;
+            border-radius: 9999px;
+            height: 8px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: var(--success-color);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Content Area */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .section-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .section-panel h2 {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--bg-main);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sub-section-title {
+            font-size: 1rem;
+            color: #1e3a8a;
+            margin: 20px 0 12px 0;
+            padding-left: 8px;
+            border-left: 4px solid var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .checklist-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            background-color: var(--bg-main);
+            transition: background-color 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .checklist-item:hover {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .checklist-item.checked {
+            background-color: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            margin-top: 4px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--success-color);
+        }
+
+        .checklist-text {
+            font-size: 0.925rem;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .checklist-item.checked .checklist-text {
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .engineer-section {
+            margin-top: 24px;
+            padding: 20px 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(14, 165, 233, 0.05));
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .engineer-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+        }
+
+        .engineer-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .engineer-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .engineer-input {
+            width: min(100%, 360px);
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--panel-bg);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .engineer-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .engineer-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+
+        .print-btn {
+            border: none;
+            background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+        }
+
+        .print-btn:hover {
+            filter: brightness(1.03);
+        }
+
+        .engineer-error {
+            min-height: 1rem;
+            font-size: 0.85rem;
+            color: #dc2626;
+        }
+
+        .print-meta {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Math/Formula Callout Block */
+        .formula-box {
+            background: #fafafa;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .formula-graphic {
+            background: white;
+            border: 1px solid #94a3b8;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            position: relative;
+            width: 100px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .formula-graphic::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to top right, transparent calc(50% - 1px), #ef4444, transparent calc(50% + 1px));
+        }
+
+        .formula-details {
+            flex: 1;
+            font-size: 0.85rem;
+        }
+
+        .formula-expression {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #b91c1c;
+            margin-bottom: 4px;
+        }
+
+        /* Inner UI simulation components */
+        .mock-ui-box {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: inline-flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .mock-ui-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Utilities */
+        .badge {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-info { background: #e0f2fe; color: #075985; }
+
+        .btn-reset {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            width: 100%;
+            margin-top: 12px;
+            transition: background 0.2s;
+        }
+        .btn-reset:hover {
+            background: #f1f5f9;
+        }
+
+        ul.nested-list {
+            margin-left: 20px;
+            margin-top: 6px;
+            list-style-type: disc;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            body {
+                background: white;
+                color: #111827;
+                padding: 16px;
+            }
+
+            header {
+                box-shadow: none;
+                border: 1px solid #e2e8f0;
+                background: linear-gradient(135deg, #1e3a8a, #2563eb) !important;
+            }
+
+            .sidebar,
+            .btn-reset,
+            .nav-item,
+            .progress-box,
+            .engineer-actions,
+            .engineer-error {
+                display: none !important;
+            }
+
+            .dashboard-layout {
+                display: block;
+                grid-template-columns: 1fr;
+            }
+
+            .content-area {
+                gap: 16px;
+            }
+
+            .section-panel {
+                background: #ffffff !important;
+                box-shadow: none;
+                border: 1px solid #e2e8f0;
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
+
+            .checklist-item {
+                background-color: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
+
+            .checklist-item.checked {
+                background-color: #f0fdf4 !important;
+                border-color: #bbf7d0 !important;
+            }
+
+            .engineer-section {
+                background: #ffffff !important;
+                border: 1px solid #e2e8f0;
+                box-shadow: none;
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
+
+            .engineer-input {
+                background: #ffffff !important;
+                color: #111827 !important;
+                border: 1px solid #64748b !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Points to be Followed for Cell &amp; Symbol Creation</h1>
+        <p>Hardware Engineering Quality Assurance &amp; PCB Layout Checklist Blueprint</p>
+    </header>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <div class="nav-title">Checklist Modules</div>
+            <ul class="nav-list">
+                <li class="nav-item active" onclick="scrollToSection('sec-datasheet')">1. Datasheet Verification</li>
+                <li class="nav-item" onclick="scrollToSection('sec-padstack')">2. Pad Stack Parameters</li>
+                <li class="nav-item" onclick="scrollToSection('sec-manufacturing')">3. Manufacturing Bounds</li>
+                <li class="nav-item" onclick="scrollToSection('sec-cell')">4. Cell Creation Rules</li>
+                <li class="nav-item" onclick="scrollToSection('sec-symbol')">5. Symbol Creation Rules</li>
+            </ul>
+
+            <div class="progress-box">
+                <div class="progress-title">
+                    <span>Overall Progress</span>
+                    <span id="progress-percent">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="main-progress-bar"></div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; text-align: right;" id="progress-count">
+                    0 / 0 Completed
+                </div>
+            </div>
+
+            <button class="btn-reset" onclick="resetChecklist()">Reset Progress</button>
+        </div>
+
+        <!-- Main Form Content -->
+        <div class="content-area">
+
+            <!-- SECTION 1: DATASHEET -->
+            <div class="section-panel" id="sec-datasheet">
+                <h2>1. Points to be Verified in Data Sheet</h2>
+                <div class="checklist-group">
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ds-1">
+                        <div class="checklist-text">Check the Manufacturer part numbers configured in the latest data sheet.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ds-2">
+                        <div class="checklist-text">
+                            Check whether actual dimension, recommended land pattern &amp; symbol details are available in the datasheet.
+                            <br><span style="color:var(--text-secondary); font-size:0.8rem;"><strong>Note:</strong> Ferrite components evaluation section on user (random) should be followed in case recommended land pattern is not available in the datasheet.</span>
+                        </div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ds-3">
+                        <div class="checklist-text">No assumption on the view from the drawing given in the datasheet.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ds-4">
+                        <div class="checklist-text">Do we can follow mil (thousandth) if the dimension is provided in inches. All measurements should be checked with respect to datasheets.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ds-5">
+                        <div class="checklist-text">
+                            Approval should be received before approving the below criteria components:
+                            <ul class="nested-list">
+                                <li><strong>BGA:</strong> Less than 0.8mm Pitch.</li>
+                                <li><strong>QFN:</strong> Less than 0.5mm Pitch.</li>
+                                <li><strong>SON:</strong> Less than 0.5mm (Pitch/Width).</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ds-6">
+                        <div class="checklist-text">
+                            <span class="badge badge-danger">Not Recommended</span> Murata Caps/Res, X2Y Capacitors, NORDIC IC &amp; JST Custom Connectors are not recommended to use. (Approval should be provided by CTO or HW Tech).
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: PAD STACK -->
+            <div class="section-panel" id="sec-padstack">
+                <h2>2. Points to be Verified in Pad Stack</h2>
+                <div class="checklist-group">
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-1">
+                        <div class="checklist-text">Padstack should be created by / Collected from Library Team Admin only. (Check in Central Library before creating Padstack to avoid duplication).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-2">
+                        <div class="checklist-text">Footprint Pad should be defined as TOP or Internal Layer.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-3">
+                        <div class="checklist-text">
+                            Do not disable the marked ticks inside the tool configuration:
+                            <br>
+                            <div class="mock-ui-box">
+                                <div class="mock-ui-row"><input type="checkbox" checked disabled> <span>Rectangle 10x19</span></div>
+                                <div class="mock-ui-row"><input type="checkbox" checked disabled> <span>Rectangle 10x20</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-4">
+                        <div class="checklist-text">
+                            Check the Through hole pad size (Square / Rectangle) utilizing the Pythagorean theorem to find Diagonal / Diameter.
+                            <div class="formula-box">
+                                <div class="formula-graphic">
+                                    a [ W ]<br>
+                                    b [ H ]
+                                </div>
+                                <div class="formula-details">
+                                    <div class="formula-expression">c = √(a² + b²)</div>
+                                    <strong>Example Setup:</strong><br>
+                                    Given: a = 0.5 mm, b = 0.7 mm<br>
+                                    c = √[0.25 + 0.49] = 0.86 mm (Actual Diagonal)<br>
+                                    <strong>Drill Size Calculation:</strong> (0.86 + 0.2) mm = <strong>1.06 mm (41.7 - 42 mils)</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-5">
+                        <div class="checklist-text">Drill size to be increased 6 mils from the actual pin size. (For annular ring add 12 mils from the Actual AWG Dia). Drill size should be rounded up values (Ex: 41.47 → 42 mils, 46.22 → 46 mils).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-6">
+                        <div class="checklist-text">Tolerance mapping value should be positive +/- 3 mils (Plated) / +3 mils (Non-Plated Hole Diameter (+/- 0 and Tolerance)).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-7">
+                        <div class="checklist-text">Check the Pad stack naming. (Standard names already available in naming Padstack Standard - Central Library).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-8">
+                        <div class="checklist-text">For Through hole components, a minimum annular ring of <strong>10 mils</strong> is required on the top pad layer.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-9">
+                        <div class="checklist-text">Verify the mask opening should be greater than pad size by <strong>4 mils</strong> (2 mils per side).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-10">
+                        <div class="checklist-text">Verify the mask-to-mask clearance should be <strong>4 mils at least</strong> (If miniature component, maintained 4 mils – each 2 mils after approval).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-11">
+                        <div class="checklist-text">Mask controlled mapping should be given for the pad which is connected to planes (Refer Datasheet) – Ex: GND, PWR &amp; Center pad.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-12">
+                        <div class="checklist-text">For SMD components, matching paired pads should be exactly identical in pad size.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-13">
+                        <div class="checklist-text">Check paste stencil window size (Mylar / Stencil). For large pad sizes, segment the paste stencil space to 60 - 75% coverage using sub-divided blocks.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-14">
+                        <div class="checklist-text">For Through hole components, pad mapping must be equal (Check standard rules if the component has variant sizing layouts inside the datasheet).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ps-15">
+                        <div class="checklist-text">For Mounting holes, the board inner layer Anti-pad size must match the outer clearing size dimension.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: MANUFACTURING -->
+            <div class="section-panel" id="sec-manufacturing">
+                <h2>3. Points to be Verified in Terms of Manufacturing</h2>
+                <div class="checklist-group">
+                    <div class="checklist-item">
+                        <input type="checkbox" id="mfg-1">
+                        <div class="checklist-text">Check whether the Copper-to-Copper (Cu to Cu) clearance is maintained at a minimum of <strong>6 mils</strong> for SMD components.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="mfg-2">
+                        <div class="checklist-text">Check whether the Copper-to-Copper (Cu to Cu) clearance is maintained at a minimum of <strong>10 mils</strong> for Through Hole Components.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="mfg-3">
+                        <div class="checklist-text"><span class="badge badge-warning">Approval Required</span> Obtain engineering sign-off for pad layout definitions on any BGA containing <span class="badge badge-info">&lt;0.65 mm Pitch</span>.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: CELL CREATION -->
+            <div class="section-panel" id="sec-cell">
+                <h2>4. Points to be Followed for Cell Creation</h2>
+                
+                <div class="sub-section-title">Points to be verified in Cell Editor</div>
+                <div class="checklist-group">
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-1">
+                        <div class="checklist-text">Cell Name should be mapped exactly as per standard library part reference land pattern availability guidelines.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-2">
+                        <div class="checklist-text">Verify the orientation origin of the component. Landpattern should always be constructed from the <strong>Top View</strong> perspective.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-3">
+                        <div class="checklist-text">Verify the pin name, pin number, and physical pin sequence map against the schematic symbol and component datasheet.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-4">
+                        <div class="checklist-text">Cross-verify the exact X &amp; Y coordinate locations of the pads relative to the designated cell origin point.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-5">
+                        <div class="checklist-text">Always extract absolute pitch dimensions via "Pin Center to Center" metrics, discarding raw tolerance variables.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-6">
+                        <div class="checklist-text">Verify Pitch, Row-to-Row space, Outer-to-Outer space, and Inner-to-Inner limits match recommended footprints.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-7">
+                        <div class="checklist-text">Run physical simulation fitment checks matching target lead pins/through-holes against footprint layer structures.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-8">
+                        <div class="checklist-text">Verify assembly drawing and placement outline clearance: <code>Width = Nominal Width + Max(tolerance) [mils]</code>.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-9">
+                        <div class="checklist-text">Verify Assembly Screen Text rules: (Height = 35 mils, Width = 35 mils &amp; Line Width = 5 mils; Layer = assembly text).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-10">
+                        <div class="checklist-text">Silkscreen reference designators / assembly part number fonts must be rendered in Verilog Font / Assembly Ref Des in Arial.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-11">
+                        <div class="checklist-text">Verify the outer Placement Outline features a definitive line width dimension of <strong>0.1016 mm / 4 mils</strong>.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-12">
+                        <div class="checklist-text">Check both the assembly outline and silkscreen graphics to ensure a proper chamfer indicator designates Pin 1 placement.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-13">
+                        <div class="checklist-text">Verify component dimensional data limits: absolute Width, absolute Length, and Maximum Height bounds inclusive of tolerance ranges.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-14">
+                        <div class="checklist-text">Check component polarity markings where applicable (Ex: Diodes, LEDs, Polarized Capacitors).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-15">
+                        <div class="checklist-text">Check long part overlays; verify if the physical layout needs restrictions to fit standard configurations.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-16">
+                        <div class="checklist-text">Check the mounting hole types (NPTH / PTH). If unspecified, default to NPTH. Verify and confirm connector outer shell body composition.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-17">
+                        <div class="checklist-text">Place clear routing keepouts (Router Obstruct) directly under ceramic bodies or metal case chassis to prevent under-component routing/vias.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-18">
+                        <div class="checklist-text">Confirm contour properties are defined correctly (NPTH vs. PTH structural paths).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-19">
+                        <div class="checklist-text">Collect mechanical parameters for module-level interfaces (Ex: QSFP cages): mapping mounting footprints, weight distribution rules, and thermal links.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-20">
+                        <div class="checklist-text">For standard component via spaces and operational amplifiers: establish the three distinctive structural via class systems in the layout layers.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-21">
+                        <div class="checklist-text">Enforce absolute maximum bounding envelope dimensions, including max tolerance ranges, for SIP Modules.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="ce-22">
+                        <div class="checklist-text">Provide a 0.5 mm rounded countersink clearance profile from maximum outer limits (with tolerance) on the opposite bottom layer.</div>
+                    </div>
+                </div>
+
+                <div class="sub-section-title">For QFN Packages</div>
+                <div class="checklist-group">
+                    <div class="checklist-item"><input type="checkbox" id="qfn-1"><div class="checklist-text">Validate dimensions against IPC compliance standards.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="qfn-2"><div class="checklist-text">Search central database for existing matching package definitions or compatible alternate layout footprints.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="qfn-3"><div class="checklist-text">Generate fused configurations or direct recommended land pattern variations.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="qfn-4"><div class="checklist-text">Produce Standard Recommended Footprints (Differentiate Defined vs. BMP footprint layouts for QFN families).</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="qfn-5"><div class="checklist-text">Enforce design restrictions over Center Pad Thermal Via arrays and spatial layout layer pad dimension mappings.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="qfn-6"><div class="checklist-text">Apply strict mask-defined solder control boundaries if connected directly to critical copper zones like GND or PWR grids.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="qfn-7"><div class="checklist-text">Integrate thermal via clusters per engineering documentation or adequate heat-sink vias for GSM, RF LNAs, Mixers, Power Amps, and Power Transistors.</div></div>
+                </div>
+
+                <div class="sub-section-title">For Leaded Packages (Ex: SOIC, TSSOP)</div>
+                <div class="checklist-group">
+                    <div class="checklist-item"><input type="checkbox" id="lead-1"><div class="checklist-text">Validate footprints against target IPC standards.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="lead-2"><div class="checklist-text">Cross-check identical component frames or alternate layout options sharing identical physical shapes inside the main library.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="lead-3"><div class="checklist-text">Establish fused footprints or matching manufacturer-recommended patterns.</div></div>
+                </div>
+
+                <div class="sub-section-title">For Resistors / Caps (0201, 0402, 0603, 0805)</div>
+                <div class="checklist-group">
+                    <div class="checklist-item"><input type="checkbox" id="rc-1"><div class="checklist-text">Validate footprints against target IPC standards.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="rc-2"><div class="checklist-text">Check matching component geometries or alternative packages with identical footprints inside the central library.</div></div>
+                </div>
+
+                <div class="sub-section-title">For BGA Packages</div>
+                <div class="checklist-group">
+                    <div class="checklist-item"><input type="checkbox" id="bga-1"><div class="checklist-text">Ensure target pad land diameter maps to roughly <strong>~80%</strong> of the true structural sphere ball diameter (Use existing reference definitions in central library).</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="bga-2"><div class="checklist-text">Verify land details, corner pad breakdown geometry rules, and blind/buried micro-via breakout schemes.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="bga-3"><div class="checklist-text">Set solder mask opening structures per design specifications or datasheet guidelines.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="bga-4"><div class="checklist-text">Apply strict solder mask defined (SMD) pad rule controls over main system trunks like GSM and primary power connections.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="bga-5"><div class="checklist-text">Verify fiducial placement configuration maps around large BGA steps (Minimum of 3 alignment markers required).</div></div>
+                </div>
+
+                <div class="sub-section-title">For Connectors</div>
+                <div class="checklist-group">
+                    <div class="checklist-item"><input type="checkbox" id="conn-1"><div class="checklist-text">Verify true mechanical mating length and width metrics. Set outer placement bounds matching worst-case maximum tolerance sizes.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="conn-2"><div class="checklist-text">Determine symmetric or asymmetric balance configurations with respect to origin points.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="conn-3"><div class="checklist-text">Provide note configurations indicating Pin 1 position if <code>CON43170</code> &amp; <code>CON43171*</code> are present. Map all explicit pin setups to standard design directives: <strong>DF-BP-CON-20279-002167</strong>.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="conn-4"><div class="checklist-text">Ensure explicit solder mask clearance windows encompass connector chassis shield grounding tabs.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="conn-5"><div class="checklist-text">Maintain connector shield boundaries at a minimum distance of <strong>10 mils</strong> away from physical board outer edge lines.</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="conn-6"><div class="checklist-text">Verify specific fiducial alignment mark placements relative to fine-pitch lead styles (Minimum of 3 markers required).</div></div>
+                    <div class="checklist-item"><input type="checkbox" id="conn-7"><div class="checklist-text">Verify all PCB landing pads conform to standardized profiles: strictly square, clean rectangle, or rounded oblong configurations.</div></div>
+                </div>
+            </div>
+
+            <!-- SECTION 5: SYMBOL CREATION -->
+            <div class="section-panel" id="sec-symbol">
+                <h2>5. Points to be Followed for Symbol Creation</h2>
+                <div class="checklist-group">
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-1">
+                        <div class="checklist-text">Query central database for existing symbol mappings (Lookup via key attributes &amp; Manufacturer; e.g., Power Limiter, Flash, Amplifier, Analog Devices, or Mini-Circuits).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-2">
+                        <div class="checklist-text">Shape symbol pins per signal flow norms (<strong>INPUTS</strong> on Left, <strong>OUTPUTS</strong> on Right, <strong>POWER</strong> at Top, <strong>GROUND</strong> at Bottom). <span style="color:var(--text-secondary);">Note: Alternative functional mapping is allowed based on explicit application circuit layouts inside the datasheet.</span></div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-3">
+                        <div class="checklist-text">Construct schematic symbols locked entirely onto a standardized <strong>0.1 inch snap grid</strong> (Verify every pin center point snaps perfectly to grid).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-4">
+                        <div class="checklist-text">Follow IEEE rules standard for pin naming conventions (Automatically populated by the manufacturer. Note: Pins should be alphanumeric populated based on bank details).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-5">
+                        <div class="checklist-text">Render structural logic diagonal phase indicator symbols immediately forward of the functional pin line extension.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-6">
+                        <div class="checklist-text">Audit logical designations: verify inversion bubbles, horizontal mirror layouts, and directional properties match standard reference models.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-7">
+                        <div class="checklist-text">Following symbol generation, check that individual pin numbers display immediately adjacent to their respective pin name.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-8">
+                        <div class="checklist-text">Assign symbol nomenclature parameters driven explicitly by the exact package configuration footprint code.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-9">
+                        <div class="checklist-text"><span class="badge badge-warning">Crucial Process</span> Extract pin names and numbers directly via digital clipboard from source text datasheets to <strong>avoid manual typing entry mistakes</strong>.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-10">
+                        <div class="checklist-text">Map electrical pin property traits (Input, Output, Passive, Power) per operational source parameters.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-11">
+                        <div class="checklist-text">Embed working hypertext documentation URL links directly inside the schematic component attribute syntax properties.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-12">
+                        <div class="checklist-text">Verify database metadata properties (Part Description, Part Number, Part Name, and Type properties must be populated in the library editor).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-13">
+                        <div class="checklist-text">Hide the primary base symbol model name within the editor display workspace (Center the default reference placement box inside the component body frame).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-14">
+                        <div class="checklist-text">Ensure pin number notations orient horizontally in human-readable reading paths (If pin arrays reside on top/bottom edges, verify they maintain clear, un-flipped viewing paths).</div>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="sym-15">
+                        <div class="checklist-text">When manipulating component graphic blocks, monitor the dynamic error report terminal log windows for system warnings (Duplicate Pin Name / Double Assigned Pin Number).</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="engineer-section" id="engineer-section">
+                <div class="engineer-section-title">Engineer Name</div>
+                <div class="engineer-field">
+                    <label class="engineer-label" for="engineer-name">Engineer Name</label>
+                    <input type="text" id="engineer-name" class="engineer-input" placeholder="Enter engineer name" />
+                    <div class="engineer-error" id="engineer-name-error" role="alert" aria-live="polite"></div>
+                </div>
+                <div class="engineer-actions">
+                    <button type="button" class="print-btn" id="print-checklist-btn">Print Checklist</button>
+                </div>
+                <div class="print-meta" id="checklist-print-date">Date: —</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Smooth scroll implementation
+        function scrollToSection(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Checklist State Engine
+        const checkboxes = document.querySelectorAll('.checklist-group input[type="checkbox"]');
+        const engineerInput = document.getElementById('engineer-name');
+        const engineerError = document.getElementById('engineer-name-error');
+        const printDate = document.getElementById('checklist-print-date');
+        const printButton = document.getElementById('print-checklist-btn');
+
+        function updatePrintDate() {
+            if (!printDate) return;
+            const today = new Date();
+            printDate.textContent = `Date: ${today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
+        }
+
+        function validateEngineerName() {
+            if (!engineerInput) return true;
+
+            const name = engineerInput.value.trim();
+            if (!name) {
+                if (engineerError) {
+                    engineerError.textContent = 'Please enter the Engineer Name before printing the checklist.';
+                }
+                engineerInput.focus();
+                engineerInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+
+            if (engineerError) {
+                engineerError.textContent = '';
+            }
+            return true;
+        }
+
+        function printChecklist() {
+            if (!validateEngineerName()) {
+                return;
+            }
+
+            updatePrintDate();
+            window.setTimeout(() => {
+                window.print();
+            }, 120);
+        }
+        
+        function updateProgress() {
+            const total = checkboxes.length;
+            let checkedCount = 0;
+
+            checkboxes.forEach(cb => {
+                const parentItem = cb.closest('.checklist-item');
+                if (cb.checked) {
+                    checkedCount++;
+                    if (parentItem) parentItem.classList.add('checked');
+                } else {
+                    if (parentItem) parentItem.classList.remove('checked');
+                }
+            });
+
+            const percent = total > 0 ? Math.round((checkedCount / total) * 100) : 0;
+            
+            // UI elements updates
+            document.getElementById('progress-percent').innerText = percent + '%';
+            document.getElementById('main-progress-bar').style.width = percent + '%';
+            document.getElementById('progress-count').innerText = `${checkedCount} / ${total} Completed`;
+            
+            // Save state to localStorage
+            const state = {};
+            checkboxes.forEach(cb => {
+                state[cb.id] = cb.checked;
+            });
+            localStorage.setItem('pcb_checklist_state', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const savedState = localStorage.getItem('pcb_checklist_state');
+            if (savedState) {
+                const state = JSON.parse(savedState);
+                checkboxes.forEach(cb => {
+                    if (state[cb.id] !== undefined) {
+                        cb.checked = state[cb.id];
+                    }
+                });
+            }
+            updateProgress();
+        }
+
+        function resetChecklist() {
+            if (confirm("Are you sure you want to reset all current checklist progression data?")) {
+                checkboxes.forEach(cb => cb.checked = false);
+                updateProgress();
+            }
+        }
+
+        // Attach event listener triggers
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateProgress);
+        });
+
+        if (printButton) {
+            printButton.addEventListener('click', printChecklist);
+        }
+
+        if (engineerInput) {
+            engineerInput.addEventListener('input', () => {
+                if (engineerError && engineerInput.value.trim()) {
+                    engineerError.textContent = '';
+                }
+            });
+        }
+
+        // Track active navigation markers during manual window scrolling
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('.section-panel');
+            const navItems = document.querySelectorAll('.nav-item');
+            let currentSectionId = '';
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 60) {
+                    currentSectionId = section.getAttribute('id');
+                }
+            });
+
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('onclick').includes(currentSectionId)) {
+                    item.classList.add('active');
+                }
+            });
+        });
+
+        // Initialize state engine layout values on start
+        window.onload = () => {
+            loadState();
+            updatePrintDate();
+        };
+    </script>
+</body>
+</html>
